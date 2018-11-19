@@ -11,6 +11,6 @@ RUN chown -R 1001:0 /etc/stunnel /launch.sh && \
     chmod ug+rwx /launch.sh
 
 USER 1001
-EXPOSE 5000
+EXPOSE 5002
 
 CMD /launch.sh
