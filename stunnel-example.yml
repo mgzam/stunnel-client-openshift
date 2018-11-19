@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: stunnel-example
+objects:
+  -
+    apiVersion: v1
+    kind: BuildConfig
+    metadata:
+      name: stunnel-client
+    spec:
+      output:
+        to:
+          kind: ImageStreamTag
+          name: 'stunnel-client:latest'
+      runPolicy: Serial
+      source:
+        git:
+          uri: 'https://github.com/cpitman/stunnel-openshift.git'
+        type: Git
+      strategy:
+        dockerStrategy:
+          from:
+            kind: ImageStreamTag
+            name: 'centos:latest'
+        type: Docker
+      triggers:
+        -
+          type: ConfigChange
+        -
+          imageChange:
+          type: ImageChange
+  -
+    apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: centos
+    spec:
+      tags:
+        -
+          from:
+            kind: DockerImage
+            name: 'centos:latest'
+          importPolicy:
+          name: latest
+  -
+    apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: stunnel-client
+    spec:
+      tags:
+        -
+          name: latest
+  -
+    apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      name: stunnel-client
+    spec:
+      replicas: 1
+      selector:
+        app: stunnel-client
+        deploymentconfig: stunnel-client
+      strategy:
+        type: Rolling
+      template:
+        metadata:
+          labels:
+            app: stunnel-client
+            deploymentconfig: stunnel-client
+        spec:
+          containers:
+            -
+              imagePullPolicy: Always
+              livenessProbe: {failureThreshold: 3, initialDelaySeconds: 1, periodSeconds: 10, successThreshold: 1, tcpSocket: {port: 5000}, timeoutSeconds: 1}
+              name: stunnel-client
+              ports: [{containerPort: 5000, protocol: TCP}]
+              readinessProbe: {failureThreshold: 3, initialDelaySeconds: 1, periodSeconds: 10, successThreshold: 1, tcpSocket: {port: 5000}, timeoutSeconds: 1}
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+      test: false
+      triggers:
+        -
+          type: ConfigChange
+        -
+          imageChangeParams:
+            automatic: true
+            containerNames:
+              - stunnel-client
+            from:
+              kind: ImageStreamTag
+              name: 'stunnel-client:latest'
+          type: ImageChange
+  -
+    apiVersion: v1
+    kind: Route
+    metadata:
+      labels:
+        app: stunnel-client
+      name: stunnel-client
+    spec:
+      port:
+        targetPort: 5000-tcp
+      tls:
+        termination: passthrough
+      to:
+        kind: Service
+        name: stunnel-client
+        weight: 100
+  -
+    apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: stunnel-client
+      name: stunnel-client
+    spec:
+      ports:
+        -
+          name: 5000-tcp
+          port: 5000
+          protocol: TCP
+          targetPort: 5000
+      selector:
+        deploymentconfig: stunnel-client
+      sessionAffinity: None
+      type: ClusterIP

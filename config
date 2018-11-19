@@ -1,0 +1,9 @@
+client=yes
+sslVersion = TLSv1.2
+foreground = yes
+pid =
+
+[service]
+accept=5002
+connect=stunnel-poc-elastichq.scale-n-eu.sanofi.com:443
+verify=0
