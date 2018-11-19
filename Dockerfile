@@ -1,6 +1,6 @@
 FROM centos
 
-RUN yum install -y stunnel openssl sed telnet && yum clean all && \
+RUN yum install -y stunnel openssl sed telnet iperf3 && yum clean all && \
     mkdir -p /etc/stunnel/config /etc/stunnel/pki
 
 ADD config /etc/stunnel/config/config
